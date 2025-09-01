@@ -8,7 +8,7 @@ This extension helps students by offering **autocomplete, syntax highlighting, a
 
 ## ✨ Features
 
-- ✅ Autocomplete suggestions for LC2200 assembly instructions (`add`, `lea`, `jsr`, etc.)
+- ✅ Autocomplete suggestions for LC2200 assembly instructions (`add`, `lea`, `jalr`, etc.)
 - ✅ Inline documentation for each instruction (operand format, usage)
 - ✅ Syntax highlighting for `.s` / `.asm` files
 - ✅ Easy setup—just install and start coding!
@@ -22,6 +22,8 @@ Example: typing `ad` will suggest `add` along with its operand format:
 - Create or open a file with extension .s or .asm.
 - Start typing an instruction (e.g., `lw`, `sw`, `add`) and IntelliSense will suggest completions.
 - Hover over an instruction to see its expected operands.
+- This is an example of what autocomplete adds:
+  ![LC2200 Assembly Intellisense Example](images/image.png)
 
 ---
 
