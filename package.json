@@ -1,0 +1,50 @@
+{
+  "name": "cs2200-asm-intellisense",
+  "displayName": "cs2200-asm-intellisense",
+  "description": "Intellisense for CS2200 ISA",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.103.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:cs2200asm"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "cs2200-asm-intellisense.helloWorld",
+        "title": "Hello World"
+      }
+    ],
+    "languages": [
+      {
+        "id": "cs2200asm",
+        "aliases": [
+          "CS2200 Assembly",
+          "cs2200asm"
+        ],
+        "extensions": [
+          ".s",
+          ".asm"
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.103.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "eslint": "^9.32.0",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}
