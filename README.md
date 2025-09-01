@@ -20,6 +20,7 @@ Example: typing `ad` will suggest `add` along with its operand format:
 ## 📝 Usage
 
 - Create or open a file with extension .s or .asm.
+- Ensure to select the language `cs2200asm` at the bottom bar.
 - Start typing an instruction (e.g., `lw`, `sw`, `add`) and IntelliSense will suggest completions.
 - Hover over an instruction to see its expected operands.
 - This is an example of what autocomplete adds:
