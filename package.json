@@ -4,6 +4,10 @@
   "description": "Intellisense for CS2200 ISA",
   "version": "0.0.1",
   "publisher": "lakimapturn",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lakimapturn/cs2200-asm-intellisense.git"
+  },
   "engines": {
     "vscode": "^1.103.0"
   },
