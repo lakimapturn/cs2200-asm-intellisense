@@ -2,7 +2,7 @@
   "name": "cs2200-asm-intellisense",
   "displayName": "cs2200-asm-intellisense",
   "description": "Intellisense for CS2200 ISA",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "lakimapturn",
   "repository": {
     "type": "git",
