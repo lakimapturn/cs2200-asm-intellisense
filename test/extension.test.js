@@ -1,15 +1,68 @@
-const assert = require('assert');
+const assert = require("assert");
+const vscode = require("vscode");
 
-// You can import and use all API from the 'vscode' module
-// as well as import your extension to test it
-const vscode = require('vscode');
-// const myExtension = require('../extension');
+suite("CS2200 Assembly IntelliSense Tests", () => {
+  test("Extension activates", async () => {
+    const ext = vscode.extensions.getExtension(
+      "lakimapturn.cs2200-asm-intellisense"
+    );
+    assert.ok(ext, "Extension not found in VS Code.");
 
-suite('Extension Test Suite', () => {
-	vscode.window.showInformationMessage('Start all tests.');
+    await ext.activate();
+    assert.ok(ext.isActive, "Extension failed to activate.");
+  });
 
-	test('Sample test', () => {
-		assert.strictEqual(-1, [1, 2, 3].indexOf(5));
-		assert.strictEqual(-1, [1, 2, 3].indexOf(0));
-	});
+  //   test("Provides completion items for instructions", async () => {
+  //     const doc = await vscode.workspace.openTextDocument({
+  //       content: "ad",
+  //       language: "cs2200asm",
+  //     });
+  //     const pos = new vscode.Position(0, 2); // after "ad"
+
+  //     const completions = /** @type {vscode.CompletionList} */ (
+  //       await vscode.commands.executeCommand(
+  //         "vscode.executeCompletionItemProvider",
+  //         doc.uri,
+  //         pos
+  //       )
+  //     );
+
+  //     console.log(
+  //       "Completion labels:",
+  //       completions.items.map((i) => i.label)
+  //     );
+
+  //     // Look for "add"
+  //     const hasAdd = completions.items.some((item) => item.label === "add");
+  //     assert.ok(hasAdd, 'Expected "add" to be suggested as completion.');
+  //   });
+
+  //   test("Provides correct detail for add instruction", async () => {
+  //     const doc = await vscode.workspace.openTextDocument({
+  //       content: "add",
+  //       language: "cs2200asm",
+  //     });
+  //     const pos = new vscode.Position(0, 3);
+
+  //     const completions = /** @type {vscode.CompletionList} */ (
+  //       await vscode.commands.executeCommand(
+  //         "vscode.executeCompletionItemProvider",
+  //         doc.uri,
+  //         pos
+  //       )
+  //     );
+
+  //     console.log(
+  //       "Completion labels:",
+  //       completions.items.map((i) => i.label)
+  //     );
+
+  //     const addItem = completions.items.find((item) => item.label === "add");
+  //     assert.ok(addItem, 'Expected "add" completion item.');
+  //     assert.strictEqual(
+  //       addItem.detail,
+  //       "register, register, register",
+  //       "Add instruction detail mismatch."
+  //     );
+  //   });
 });

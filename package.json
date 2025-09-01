@@ -3,23 +3,19 @@
   "displayName": "cs2200-asm-intellisense",
   "description": "Intellisense for CS2200 ISA",
   "version": "0.0.1",
+  "publisher": "lakimapturn",
   "engines": {
     "vscode": "^1.103.0"
   },
   "categories": [
-    "Other"
+    "Programming Languages"
   ],
   "activationEvents": [
     "onLanguage:cs2200asm"
   ],
   "main": "./extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "cs2200-asm-intellisense.helloWorld",
-        "title": "Hello World"
-      }
-    ],
+    "commands": [],
     "languages": [
       {
         "id": "cs2200asm",
