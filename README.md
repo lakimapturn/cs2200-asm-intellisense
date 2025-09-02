@@ -34,3 +34,9 @@ Example: typing `ad` will suggest `add` along with its operand format:
 ## 👨‍💻 Author
 
 Developed by Laksh Makhija
+
+---
+
+## 💡 Contributions
+
+This extension is very new so if you find any bugs or errors, feel free to post on Ed!
