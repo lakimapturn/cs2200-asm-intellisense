@@ -108,14 +108,16 @@ function validateDocument(doc, diagnosticCollection) {
 
   text.forEach((line, i) => {
     // Strip out comments first
-    const codePart = line.split("!")[0].trim();
+    let codePart = line.split("!")[0].trim();
     if (!codePart) return; // whole line was a comment, skip
+
+    codePart = line.replace(/[,]/g, " ");
 
     const tokens = codePart.split(/\s+/);
 
     // Register validation
     tokens.forEach((token) => {
-      const cleanToken = token.replace(/[,]/g, "").trim();
+      const cleanToken = token.trim();
 
       if (cleanToken.startsWith("$") && !validRegisters.has(cleanToken)) {
         diagnostics.push(
