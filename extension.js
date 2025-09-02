@@ -13,6 +13,19 @@ const instructionSpecs = {
   halt: [],
 };
 
+const legalMnemonics = new Set([
+  "add",
+  "nand",
+  "addi",
+  "lw",
+  "sw",
+  "beq",
+  "jalr",
+  "halt",
+  "bgt",
+  "lea",
+]);
+
 // Allowed registers
 const validRegisters = new Set([
   "$zero",
@@ -124,9 +137,24 @@ function validateDocument(doc, diagnosticCollection) {
     let codePart = line.split("!")[0].trim();
     if (!codePart) return; // whole line was a comment, skip
 
-    codePart = line.replace(/[,]/g, " ");
-
+    // Normalize commas → spaces
+    codePart = codePart.replace(/,/g, " ");
     const tokens = codePart.split(/\s+/);
+    if (tokens.length === 0) return;
+
+    const mnemonic = tokens[0].toLowerCase();
+
+    // Illegal mnemonic check
+    if (!legalMnemonics.has(mnemonic) && !labels.has(mnemonic)) {
+      diagnostics.push(
+        new vscode.Diagnostic(
+          new vscode.Range(i, 0, i, mnemonic.length),
+          `Illegal mnemonic: ${mnemonic}`,
+          vscode.DiagnosticSeverity.Error
+        )
+      );
+      return;
+    }
 
     // Register validation
     tokens.forEach((token) => {
@@ -148,10 +176,15 @@ function validateDocument(doc, diagnosticCollection) {
       }
     });
 
-    // Label usage validation (e.g., "beq label", "lea DR, label")
-    if (/^(beq|bne|jmp|lea)\b/.test(tokens[0])) {
+    // Label usage validation
+    if (/^(beq|bgt|lea|jalr|jmp)\b/.test(mnemonic)) {
       const label = tokens[tokens.length - 1].replace(/[,]/g, "");
-      if (!labels.has(label)) {
+      if (
+        label &&
+        !labels.has(label) &&
+        !label.startsWith("$") &&
+        isNaN(label)
+      ) {
         diagnostics.push(
           new vscode.Diagnostic(
             new vscode.Range(
