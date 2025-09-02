@@ -1,5 +1,38 @@
 const vscode = require("vscode");
 
+// instruction format
+const instructionSpecs = {
+  add: ["register", "register", "register"],
+  nand: ["register", "register", "register"],
+  addi: ["register", "register", "number"],
+  lw: ["register", "number(register)"],
+  sw: ["register", "number(register)"],
+  beq: ["register", "register", "number"],
+  lea: ["register", "label"],
+  jalr: ["register", "register"],
+  halt: [],
+};
+
+// Allowed registers
+const validRegisters = new Set([
+  "$zero",
+  "$t0",
+  "$t1",
+  "$t2",
+  "$s0",
+  "$s1",
+  "$s2",
+  "$v0",
+  "$ra",
+  "$at",
+  "$sp",
+  "$fp",
+  "$a0",
+  "$a1",
+  "$a2",
+  "$k0",
+]);
+
 function activate(context) {
   const provider = vscode.languages.registerCompletionItemProvider(
     { scheme: "file", language: "cs2200asm" },
@@ -76,26 +109,6 @@ function validateDocument(doc, diagnosticCollection) {
 
   const diagnostics = [];
   const text = doc.getText().split("\n");
-
-  // Allowed registers
-  const validRegisters = new Set([
-    "$zero",
-    "$t0",
-    "$t1",
-    "$t2",
-    "$s0",
-    "$s1",
-    "$s2",
-    "$v0",
-    "$ra",
-    "$at",
-    "$sp",
-    "$fp",
-    "$a0",
-    "$a1",
-    "$a2",
-    "$k0",
-  ]);
 
   // Collect all labels (anything ending with :)
   const labels = new Set();
