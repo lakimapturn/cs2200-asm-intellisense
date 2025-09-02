@@ -2,7 +2,7 @@
   "name": "cs2200-asm-intellisense",
   "displayName": "cs2200-asm-intellisense",
   "description": "Intellisense for CS2200's LC2200 ISA",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "publisher": "lakimapturn",
   "repository": {
     "type": "git",
@@ -14,9 +14,7 @@
   "categories": [
     "Programming Languages"
   ],
-  "activationEvents": [
-    "onLanguage:cs2200asm"
-  ],
+  "activationEvents": [],
   "main": "./extension.js",
   "contributes": {
     "commands": [],
@@ -30,7 +28,8 @@
         "extensions": [
           ".s",
           ".asm"
-        ]
+        ],
+        "configuration": "./language-configuration.json"
       }
     ]
   },
