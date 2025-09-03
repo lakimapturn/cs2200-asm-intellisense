@@ -145,7 +145,10 @@ function validateDocument(doc, diagnosticCollection) {
     const mnemonic = tokens[0].toLowerCase();
 
     // Illegal mnemonic check
-    if (!legalMnemonics.has(mnemonic) && !labels.has(mnemonic)) {
+    if (
+      (!legalMnemonics.has(mnemonic) && !labels.has(mnemonic)) ||
+      mnemonic.contains(":")
+    ) {
       diagnostics.push(
         new vscode.Diagnostic(
           new vscode.Range(i, 0, i, mnemonic.length),
