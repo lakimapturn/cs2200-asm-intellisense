@@ -1,6 +1,7 @@
 const vscode = require("vscode");
 
 // instruction format
+// @ts-ignore
 const instructionSpecs = {
   add: ["register", "register", "register"],
   nand: ["register", "register", "register"],
@@ -46,10 +47,14 @@ const validRegisters = new Set([
   "$k0",
 ]);
 
+// Allowed pseudo ops
+const pseudoOps = new Set([".word", ".fill"]);
+
 function activate(context) {
   const provider = vscode.languages.registerCompletionItemProvider(
     { scheme: "file", language: "cs2200asm" },
     {
+      // @ts-ignore
       provideCompletionItems(document, position) {
         const completions = [];
 
@@ -117,6 +122,7 @@ function activate(context) {
   context.subscriptions.push(provider);
 }
 
+// @ts-ignore
 function validateDocument(doc, diagnosticCollection) {
   if (doc.languageId !== "cs2200asm") return;
 
@@ -133,22 +139,26 @@ function validateDocument(doc, diagnosticCollection) {
   });
 
   text.forEach((line, i) => {
-    // Strip out comments first
+    // Strip out comments
     let codePart = line.split("!")[0].trim();
-    if (!codePart) return; // whole line was a comment, skip
+    if (!codePart) return; // empty or comment-only line
 
-    // Normalize commas → spaces
+    // Handle label definitions
+    if (codePart.includes(":")) {
+      const afterLabel = codePart.split(":")[1].trim();
+      if (!afterLabel) return;
+      codePart = afterLabel;
+    }
+
+    // Turn commas into spaces so we dont need to worry about spacing between regs
     codePart = codePart.replace(/,/g, " ");
-    const tokens = codePart.split(/\s+/);
+    const tokens = codePart.split(/\s+/).filter(Boolean);
     if (tokens.length === 0) return;
 
-    const mnemonic = tokens[0].toLowerCase();
+    const mnemonic = tokens[0];
 
     // Illegal mnemonic check
-    if (
-      (!legalMnemonics.has(mnemonic) && !labels.has(mnemonic)) ||
-      mnemonic.contains(":")
-    ) {
+    if (!legalMnemonics.has(mnemonic) && !pseudoOps.has(mnemonic)) {
       diagnostics.push(
         new vscode.Diagnostic(
           new vscode.Range(i, 0, i, mnemonic.length),
@@ -162,7 +172,6 @@ function validateDocument(doc, diagnosticCollection) {
     // Register validation
     tokens.forEach((token) => {
       const cleanToken = token.trim();
-
       if (cleanToken.startsWith("$") && !validRegisters.has(cleanToken)) {
         diagnostics.push(
           new vscode.Diagnostic(
