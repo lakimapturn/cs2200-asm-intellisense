@@ -8,7 +8,7 @@ const instructionSpecs = {
   addi: ["register", "register", "number"],
   lw: ["register", "number(register)"],
   sw: ["register", "number(register)"],
-  beq: ["register", "register", "number"],
+  beq: ["register", "register", "label"],
   lea: ["register", "label"],
   jalr: ["register", "register"],
   halt: [],
@@ -161,12 +161,111 @@ function validateDocument(doc, diagnosticCollection) {
     if (!legalMnemonics.has(mnemonic) && !pseudoOps.has(mnemonic)) {
       diagnostics.push(
         new vscode.Diagnostic(
-          new vscode.Range(i, 0, i, mnemonic.length),
+          new vscode.Range(
+            i,
+            line.indexOf(mnemonic),
+            i,
+            line.indexOf(mnemonic) + mnemonic.length
+          ),
           `Illegal mnemonic: ${mnemonic}`,
           vscode.DiagnosticSeverity.Error
         )
       );
       return;
+    }
+
+    // Checking instruction specs
+    const operands = tokens.slice(1);
+    if (instructionSpecs[mnemonic]) {
+      const expected = instructionSpecs[mnemonic];
+
+      // Operand count mismatch
+      if (operands.length !== expected.length) {
+        diagnostics.push(
+          new vscode.Diagnostic(
+            new vscode.Range(
+              i,
+              line.indexOf(mnemonic),
+              i,
+              line.indexOf(mnemonic) + mnemonic.length
+            ),
+            `Expected ${expected.length} operand(s) for '${mnemonic}', got ${operands.length}`,
+            vscode.DiagnosticSeverity.Error
+          )
+        );
+      } else {
+        // Operand type validation
+        operands.forEach((op, idx) => {
+          const type = expected[idx];
+          const cleanOp = op.replace(/[()]/g, ""); // handle offset($reg)
+
+          if (type === "register" && !validRegisters.has(cleanOp)) {
+            diagnostics.push(
+              new vscode.Diagnostic(
+                new vscode.Range(
+                  i,
+                  line.indexOf(op),
+                  i,
+                  line.indexOf(op) + op.length
+                ),
+                `Expected register at position ${idx + 1}, got '${op}'`,
+                vscode.DiagnosticSeverity.Error
+              )
+            );
+          }
+
+          if (type === "number" && isNaN(parseInt(op))) {
+            diagnostics.push(
+              new vscode.Diagnostic(
+                new vscode.Range(
+                  i,
+                  line.indexOf(op),
+                  i,
+                  line.indexOf(op) + op.length
+                ),
+                `Expected number at position ${idx + 1}, got '${op}'`,
+                vscode.DiagnosticSeverity.Error
+              )
+            );
+          }
+
+          if (type === "label" && !labels.has(op)) {
+            diagnostics.push(
+              new vscode.Diagnostic(
+                new vscode.Range(
+                  i,
+                  line.indexOf(op),
+                  i,
+                  line.indexOf(op) + op.length
+                ),
+                `Expected label at position ${idx + 1}, got '${op}'`,
+                vscode.DiagnosticSeverity.Warning // not an error until undefined
+              )
+            );
+          }
+
+          if (type === "number(register)") {
+            // Match like 4($t0) or -12($s1)
+            const match = op.match(/^(-?\d+)\((\$[a-z0-9]+)\)$/i);
+            if (!match || !validRegisters.has(match[2])) {
+              diagnostics.push(
+                new vscode.Diagnostic(
+                  new vscode.Range(
+                    i,
+                    line.indexOf(op),
+                    i,
+                    line.indexOf(op) + op.length
+                  ),
+                  `Expected number(register) format at position ${
+                    idx + 1
+                  }, got '${op}'`,
+                  vscode.DiagnosticSeverity.Error
+                )
+              );
+            }
+          }
+        });
+      }
     }
 
     // Register validation
