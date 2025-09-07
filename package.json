@@ -14,12 +14,21 @@
   "categories": [
     "Programming Languages"
   ],
-  "activationEvents": [
-    "onCommand:cs2200asm.selectIsaFile"
-  ],
+  "activationEvents": [],
   "main": "./src/extension.js",
   "contributes": {
-    "commands": [],
+    "commands": [
+      {
+        "command": "cs2200asm.selectIsaFile",
+        "title": "CS2200 ASM: Select ISA File",
+        "category": "CS2200 Assembly"
+      },
+      {
+        "command": "cs2200asm.resetToDefaultIsa",
+        "title": "CS2200 ASM: Reset to Default ISA",
+        "category": "CS2200 Assembly"
+      }
+    ],
     "configuration": {
       "title": "CS2200 ASM",
       "properties": {

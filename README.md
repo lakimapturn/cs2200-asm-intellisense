@@ -23,6 +23,9 @@ Example: typing `ad` will suggest `add` along with its operand format:
 
 - Create or open a file with extension .s or .asm.
 - Ensure to select the language `cs2200asm` at the bottom bar.
+- Search for commands using `Ctrl+Shift+P` or `Cmd+Shift+P` and type `cs2200`.
+  - Select the option `CS2200 ASM: Select ISA File` to select the `*.isa` file in the `isa` folder.
+  - For general development, you can use the default isa that contains all the basic commands like `add`, `nand`, `addi`, `lw`, `sw`, `beq`, `jalr`, `halt`, and `lea`.
 - Start typing an instruction (e.g., `lw`, `sw`, `add`) and IntelliSense will suggest completions.
 - Hover over an instruction to see its expected operands.
 - Errors related to register names and labels not existing are also highlighted!
