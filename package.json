@@ -30,12 +30,13 @@
       }
     ],
     "configuration": {
-      "title": "CS2200 ASM",
+      "title": "CS2200 Assembly",
       "properties": {
         "cs2200asm.isaFilePath": {
           "type": "string",
           "default": "",
-          "description": "Path to the .isa file used for instruction specifications"
+          "description": "Path to the ISA specification file (.isa). Leave empty to use default instruction set.",
+          "scope": "workspace"
         }
       }
     },
