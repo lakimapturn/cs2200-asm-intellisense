@@ -2,7 +2,7 @@
   "name": "cs2200-asm-intellisense",
   "displayName": "cs2200-asm-intellisense",
   "description": "Intellisense for CS2200's LC2200 ISA",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "publisher": "lakimapturn",
   "repository": {
     "type": "git",
@@ -14,10 +14,22 @@
   "categories": [
     "Programming Languages"
   ],
-  "activationEvents": [],
-  "main": "./extension.js",
+  "activationEvents": [
+    "onCommand:cs2200asm.selectIsaFile"
+  ],
+  "main": "./src/extension.js",
   "contributes": {
     "commands": [],
+    "configuration": {
+      "title": "CS2200 ASM",
+      "properties": {
+        "cs2200asm.isaFilePath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the .isa file used for instruction specifications"
+        }
+      }
+    },
     "languages": [
       {
         "id": "cs2200asm",

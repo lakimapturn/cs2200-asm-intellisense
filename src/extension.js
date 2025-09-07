@@ -1,8 +1,9 @@
+const { loadIsaSpecs } = require("./isaParser");
 const vscode = require("vscode");
+const path = require("path");
 
-// instruction format
-// @ts-ignore
-const instructionSpecs = {
+// Default hardcoded instruction specifications
+const defaultInstructionSpecs = {
   add: ["register", "register", "register"],
   nand: ["register", "register", "register"],
   addi: ["register", "register", "number"],
@@ -14,6 +15,7 @@ const instructionSpecs = {
   halt: [],
 };
 
+// @ts-ignore
 const legalMnemonics = new Set([
   "add",
   "nand",
@@ -50,7 +52,128 @@ const validRegisters = new Set([
 // Allowed pseudo ops
 const pseudoOps = new Set([".word", ".fill"]);
 
+let currentInstructionSpecs = defaultInstructionSpecs;
+
+function loadInstructionSpecs() {
+  const config = vscode.workspace.getConfiguration("cs2200asm");
+  const isaFilePath = config.get("isaFilePath");
+
+  if (isaFilePath && isaFilePath.trim() !== "") {
+    try {
+      // If it's a relative path, resolve it relative to workspace
+      const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      const resolvedPath = path.isAbsolute(isaFilePath)
+        ? isaFilePath
+        : path.join(workspaceRoot || "", isaFilePath);
+
+      const customSpecs = loadIsaSpecs(
+        path.dirname(resolvedPath),
+        path.basename(resolvedPath)
+      );
+      if (Object.keys(customSpecs).length > 0) {
+        // @ts-ignore
+        currentInstructionSpecs = customSpecs;
+        vscode.window.showInformationMessage(
+          `Loaded ISA specs from: ${isaFilePath}`
+        );
+        console.log(
+          "Loaded custom instruction specs:",
+          currentInstructionSpecs
+        );
+        return;
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(
+        `Failed to load ISA file: ${error.message}`
+      );
+    }
+  }
+
+  // Fall back to default specs
+  currentInstructionSpecs = defaultInstructionSpecs;
+  console.log("Using default instruction specs:", currentInstructionSpecs);
+}
+
 function activate(context) {
+  // Load instruction specs on activation
+  loadInstructionSpecs();
+
+  // Register command to select ISA file
+  const selectIsaFileCommand = vscode.commands.registerCommand(
+    "cs2200asm.selectIsaFile",
+    async () => {
+      const options = {
+        canSelectMany: false,
+        openLabel: "Select ISA File",
+        filters: {
+          "ISA Files": ["isa"],
+          "All Files": ["*"],
+        },
+      };
+
+      const fileUri = await vscode.window.showOpenDialog(options);
+      if (fileUri && fileUri[0]) {
+        const workspaceRoot =
+          vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        let relativePath = fileUri[0].fsPath;
+
+        // Convert to relative path if possible
+        if (workspaceRoot && relativePath.startsWith(workspaceRoot)) {
+          relativePath = path.relative(workspaceRoot, relativePath);
+        }
+
+        const config = vscode.workspace.getConfiguration("cs2200asm");
+        await config.update(
+          "isaFilePath",
+          relativePath,
+          vscode.ConfigurationTarget.Workspace
+        );
+
+        // Reload specs
+        loadInstructionSpecs();
+
+        // Refresh diagnostics for all open documents
+        const diagnosticCollection = context.subscriptions.find(
+          (sub) =>
+            // @ts-ignore
+            sub instanceof vscode.DiagnosticCollection ||
+            (sub && typeof sub.set === "function")
+        );
+        if (diagnosticCollection) {
+          vscode.workspace.textDocuments.forEach((doc) => {
+            if (doc.languageId === "cs2200asm") {
+              validateDocument(doc, diagnosticCollection);
+            }
+          });
+        }
+      }
+    }
+  );
+
+  // Watch for configuration changes
+  const configChangeListener = vscode.workspace.onDidChangeConfiguration(
+    (event) => {
+      if (event.affectsConfiguration("cs2200asm.isaFilePath")) {
+        loadInstructionSpecs();
+
+        // Refresh diagnostics for all open documents
+        const diagnosticCollection = context.subscriptions.find(
+          (sub) =>
+            // @ts-ignore
+            sub instanceof vscode.DiagnosticCollection ||
+            (sub && typeof sub.set === "function")
+        );
+        if (diagnosticCollection) {
+          vscode.workspace.textDocuments.forEach((doc) => {
+            if (doc.languageId === "cs2200asm") {
+              validateDocument(doc, diagnosticCollection);
+            }
+          });
+        }
+      }
+    }
+  );
+
   const provider = vscode.languages.registerCompletionItemProvider(
     { scheme: "file", language: "cs2200asm" },
     {
@@ -58,50 +181,34 @@ function activate(context) {
       provideCompletionItems(document, position) {
         const completions = [];
 
-        // --- R Type ---
-        completions.push(
-          makeSnippet("add", "add DR, SR1, SR2", "register, register, register")
-        );
-        completions.push(
-          makeSnippet(
-            "nand",
-            "nand DR, SR1, SR2",
-            "register, register, register"
-          )
-        );
+        // Generate completions based on current instruction specs
+        Object.keys(currentInstructionSpecs).forEach((mnemonic) => {
+          const operands = currentInstructionSpecs[mnemonic];
+          let insertText = mnemonic;
+          let detail =
+            operands.length === 0 ? "no operands" : operands.join(", ");
 
-        // --- I Type ---
-        completions.push(
-          makeSnippet(
-            "addi",
-            "addi DR, SR1, imm25",
-            "register, register, number"
-          )
-        );
-        completions.push(
-          makeSnippet("lw", "lw DR, offset(SR)", "register, number(register)")
-        );
-        completions.push(
-          makeSnippet("sw", "sw SR, offset(DR)", "register, number(register)")
-        );
-        completions.push(
-          makeSnippet(
-            "beq",
-            "beq SR1, SR2, offset",
-            "register, register, number"
-          )
-        );
-        completions.push(
-          makeSnippet("lea", "lea DR, label", "register, label")
-        );
+          // Create more helpful snippet text
+          if (operands.length > 0) {
+            const placeholders = operands.map((type, index) => {
+              switch (type) {
+                case "register":
+                  return `$\{${index + 1}:$t0}`;
+                case "number":
+                  return `\{${index + 1}:0}`;
+                case "label":
+                  return `\{${index + 1}:label}`;
+                case "number(register)":
+                  return `\{${index + 1}:0($t0)}`;
+                default:
+                  return `\{${index + 1}:${type}}`;
+              }
+            });
+            insertText = `${mnemonic} ${placeholders.join(", ")}`;
+          }
 
-        // --- J Type ---
-        completions.push(
-          makeSnippet("jalr", "jalr DR, SR", "register, register")
-        );
-
-        // --- O Type ---
-        completions.push(makeSnippet("halt", "halt", "no operands"));
+          completions.push(makeSnippet(mnemonic, insertText, detail));
+        });
 
         return completions;
       },
@@ -111,6 +218,8 @@ function activate(context) {
   const diagnosticCollection =
     vscode.languages.createDiagnosticCollection("cs2200asm");
   context.subscriptions.push(diagnosticCollection);
+  context.subscriptions.push(selectIsaFileCommand);
+  context.subscriptions.push(configChangeListener);
 
   vscode.workspace.onDidOpenTextDocument((doc) =>
     validateDocument(doc, diagnosticCollection)
@@ -122,7 +231,6 @@ function activate(context) {
   context.subscriptions.push(provider);
 }
 
-// @ts-ignore
 function validateDocument(doc, diagnosticCollection) {
   if (doc.languageId !== "cs2200asm") return;
 
@@ -157,8 +265,14 @@ function validateDocument(doc, diagnosticCollection) {
 
     const mnemonic = tokens[0];
 
+    // Check against current instruction specs (which may be custom or default)
+    const currentMnemonics = new Set([
+      ...Object.keys(currentInstructionSpecs),
+      ...pseudoOps,
+    ]);
+
     // Illegal mnemonic check
-    if (!legalMnemonics.has(mnemonic) && !pseudoOps.has(mnemonic)) {
+    if (!currentMnemonics.has(mnemonic)) {
       diagnostics.push(
         new vscode.Diagnostic(
           new vscode.Range(
@@ -176,8 +290,8 @@ function validateDocument(doc, diagnosticCollection) {
 
     // Checking instruction specs
     const operands = tokens.slice(1);
-    if (instructionSpecs[mnemonic]) {
-      const expected = instructionSpecs[mnemonic];
+    if (currentInstructionSpecs[mnemonic]) {
+      const expected = currentInstructionSpecs[mnemonic];
 
       // Operand count mismatch
       if (operands.length !== expected.length) {
@@ -239,7 +353,7 @@ function validateDocument(doc, diagnosticCollection) {
                   line.indexOf(op) + op.length
                 ),
                 `Expected label at position ${idx + 1}, got '${op}'`,
-                vscode.DiagnosticSeverity.Warning // not an error until undefined
+                vscode.DiagnosticSeverity.Warning
               )
             );
           }
@@ -320,8 +434,8 @@ function makeSnippet(label, insertText, detail) {
     label,
     vscode.CompletionItemKind.Keyword
   );
-  item.insertText = insertText;
-  item.detail = detail; // shows format (e.g., "register, register, number")
+  item.insertText = new vscode.SnippetString(insertText);
+  item.detail = detail;
   return item;
 }
 
