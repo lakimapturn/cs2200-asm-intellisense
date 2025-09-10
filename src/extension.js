@@ -54,6 +54,8 @@ const pseudoOps = new Set([".word", ".fill"]);
 
 let currentInstructionSpecs = defaultInstructionSpecs;
 
+let diagnosticCollection;
+
 function loadInstructionSpecs() {
   const config = vscode.workspace.getConfiguration("cs2200asm");
   const isaFilePath = config.get("isaFilePath");
@@ -95,10 +97,15 @@ function loadInstructionSpecs() {
 }
 
 function activate(context) {
+  // Create diagnostics collection once
+  diagnosticCollection =
+    vscode.languages.createDiagnosticCollection("cs2200asm");
+  context.subscriptions.push(diagnosticCollection);
+
   // Load instruction specs on activation
   loadInstructionSpecs();
 
-  // Register command to select ISA file
+  // Command: select ISA file
   const selectIsaFileCommand = vscode.commands.registerCommand(
     "cs2200asm.selectIsaFile",
     async () => {
@@ -129,79 +136,85 @@ function activate(context) {
           vscode.ConfigurationTarget.Workspace
         );
 
-        // Reload specs
+        // Reload specs and refresh diagnostics
         loadInstructionSpecs();
-
-        // Refresh diagnostics for all open documents
-        const diagnosticCollection = context.subscriptions.find(
-          (sub) =>
-            // @ts-ignore
-            sub instanceof vscode.DiagnosticCollection ||
-            (sub && typeof sub.set === "function")
-        );
-        if (diagnosticCollection) {
-          vscode.workspace.textDocuments.forEach((doc) => {
-            if (doc.languageId === "cs2200asm") {
-              validateDocument(doc, diagnosticCollection);
-            }
-          });
-        }
+        vscode.workspace.textDocuments.forEach((doc) => {
+          if (doc.languageId === "cs2200asm") {
+            validateDocument(doc, diagnosticCollection);
+          }
+        });
       }
     }
   );
 
-  // Watch for configuration changes
+  // Command: reset ISA file
+  const resetIsaCommand = vscode.commands.registerCommand(
+    "cs2200asm.resetToDefaultIsa",
+    async () => {
+      try {
+        const config = vscode.workspace.getConfiguration("cs2200asm");
+        await config.update(
+          "isaFilePath",
+          undefined,
+          vscode.ConfigurationTarget.Workspace
+        );
+
+        currentInstructionSpecs = defaultInstructionSpecs;
+        vscode.window.showInformationMessage("ISA reset to default specs.");
+
+        // Refresh diagnostics
+        vscode.workspace.textDocuments.forEach((doc) => {
+          if (doc.languageId === "cs2200asm") {
+            validateDocument(doc, diagnosticCollection);
+          }
+        });
+      } catch (err) {
+        vscode.window.showErrorMessage(`Failed to reset ISA: ${err.message}`);
+        console.error("Reset ISA error:", err);
+      }
+    }
+  );
+
+  // Watch config changes (isaFilePath)
   const configChangeListener = vscode.workspace.onDidChangeConfiguration(
     (event) => {
       if (event.affectsConfiguration("cs2200asm.isaFilePath")) {
         loadInstructionSpecs();
-
-        // Refresh diagnostics for all open documents
-        const diagnosticCollection = context.subscriptions.find(
-          (sub) =>
-            // @ts-ignore
-            sub instanceof vscode.DiagnosticCollection ||
-            (sub && typeof sub.set === "function")
-        );
-        if (diagnosticCollection) {
-          vscode.workspace.textDocuments.forEach((doc) => {
-            if (doc.languageId === "cs2200asm") {
-              validateDocument(doc, diagnosticCollection);
-            }
-          });
-        }
+        vscode.workspace.textDocuments.forEach((doc) => {
+          if (doc.languageId === "cs2200asm") {
+            validateDocument(doc, diagnosticCollection);
+          }
+        });
       }
     }
   );
 
+  // Completion provider
   const provider = vscode.languages.registerCompletionItemProvider(
     { scheme: "file", language: "cs2200asm" },
     {
-      // @ts-ignore
       provideCompletionItems(document, position) {
         const completions = [];
 
-        // Generate completions based on current instruction specs
         Object.keys(currentInstructionSpecs).forEach((mnemonic) => {
           const operands = currentInstructionSpecs[mnemonic];
           let insertText = mnemonic;
           let detail =
             operands.length === 0 ? "no operands" : operands.join(", ");
 
-          // Create more helpful snippet text
           if (operands.length > 0) {
             const placeholders = operands.map((type, index) => {
               switch (type) {
                 case "register":
-                  return `$\{${index + 1}:$t0}`;
+                  return `\${${index + 1}:$t0}`;
                 case "number":
-                  return `\{${index + 1}:0}`;
+                  return `\${${index + 1}:0}`;
                 case "label":
-                  return `\{${index + 1}:label}`;
+                  return `\${${index + 1}:label}`;
                 case "number(register)":
-                  return `\{${index + 1}:0($t0)}`;
+                  return `\${${index + 1}:0($t0)}`;
                 default:
-                  return `\{${index + 1}:${type}}`;
+                  return `\${${index + 1}:${type}}`;
               }
             });
             insertText = `${mnemonic} ${placeholders.join(", ")}`;
@@ -215,12 +228,7 @@ function activate(context) {
     }
   );
 
-  const diagnosticCollection =
-    vscode.languages.createDiagnosticCollection("cs2200asm");
-  context.subscriptions.push(diagnosticCollection);
-  context.subscriptions.push(selectIsaFileCommand);
-  context.subscriptions.push(configChangeListener);
-
+  // Event listeners for validation
   vscode.workspace.onDidOpenTextDocument((doc) =>
     validateDocument(doc, diagnosticCollection)
   );
@@ -228,7 +236,13 @@ function activate(context) {
     validateDocument(event.document, diagnosticCollection)
   );
 
-  context.subscriptions.push(provider);
+  // Push disposables
+  context.subscriptions.push(
+    selectIsaFileCommand,
+    resetIsaCommand,
+    configChangeListener,
+    provider
+  );
 }
 
 function validateDocument(doc, diagnosticCollection) {
