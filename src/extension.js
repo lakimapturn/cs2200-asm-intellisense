@@ -218,7 +218,7 @@ function activate(context) {
                   return `\${${n}:${type}}`;
               }
             });
-            console.log(placeholders);
+            // console.log(placeholders);
             insertText = `${mnemonic} ${placeholders.join(", ")}`;
           }
 
