@@ -78,10 +78,10 @@ function loadInstructionSpecs() {
         vscode.window.showInformationMessage(
           `Loaded ISA specs from: ${isaFilePath}`
         );
-        console.log(
-          "Loaded custom instruction specs:",
-          currentInstructionSpecs
-        );
+        // console.log(
+        //   "Loaded custom instruction specs:",
+        //   currentInstructionSpecs
+        // );
         return;
       }
     } catch (error) {
@@ -93,7 +93,7 @@ function loadInstructionSpecs() {
 
   // Fall back to default specs
   currentInstructionSpecs = defaultInstructionSpecs;
-  console.log("Using default instruction specs:", currentInstructionSpecs);
+  // console.log("Using default instruction specs:", currentInstructionSpecs);
 }
 
 function activate(context) {
@@ -170,7 +170,7 @@ function activate(context) {
         });
       } catch (err) {
         vscode.window.showErrorMessage(`Failed to reset ISA: ${err.message}`);
-        console.error("Reset ISA error:", err);
+        // console.error("Reset ISA error:", err);
       }
     }
   );
@@ -204,19 +204,21 @@ function activate(context) {
 
           if (operands.length > 0) {
             const placeholders = operands.map((type, index) => {
+              const n = index + 1;
               switch (type) {
                 case "register":
-                  return `\${${index + 1}:$t0}`;
+                  return `\${${n}:$t0}`;
                 case "number":
-                  return `\${${index + 1}:0}`;
+                  return `\${${n}:0}`;
                 case "label":
-                  return `\${${index + 1}:label}`;
+                  return `\${${n}:label}`;
                 case "number(register)":
-                  return `\${${index + 1}:0($t0)}`;
+                  return `\${${n}:0($t0)}`;
                 default:
-                  return `\${${index + 1}:${type}}`;
+                  return `\${${n}:${type}}`;
               }
             });
+            console.log(placeholders);
             insertText = `${mnemonic} ${placeholders.join(", ")}`;
           }
 
@@ -273,8 +275,16 @@ function validateDocument(doc, diagnosticCollection) {
     }
 
     // Turn commas into spaces so we dont need to worry about spacing between regs
+    const firstSpace = codePart.indexOf(" ");
+    codePart =
+      codePart.substring(0, firstSpace) +
+      "," +
+      codePart.substring(firstSpace + 1);
+    codePart = codePart.replace(/ /g, "");
     codePart = codePart.replace(/,/g, " ");
+    // console.log(codePart);
     const tokens = codePart.split(/\s+/).filter(Boolean);
+    // console.log(tokens);
     if (tokens.length === 0) return;
 
     const mnemonic = tokens[0];
